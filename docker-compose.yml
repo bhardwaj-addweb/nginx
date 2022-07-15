@@ -1,0 +1,59 @@
+version: '3'
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 8000:80
+      - 8004:81
+      - 8002:82
+    volumes:
+      - ./test/:/test:rw
+      - ./conf.d:/etc/nginx/conf.d/:rw
+      # - ./conf.d/wp:/etc/nginx/conf.d/:rw
+      # - ./conf.d/laravel:/etc/nginx/conf.d/:rw
+    networks:
+      - nginxphp
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    # depends_on:
+    #   - php
+  php:
+    build: ./php
+    expose:
+      - 9000
+    links:
+      - nginx
+    restart: always
+    volumes:
+      - ./test:/test
+    networks:
+      - nginxphp
+  db:
+    image: mysql:5.7
+    links:
+      - php
+      - nginx
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: addweb
+      MYSQL_PASSWORD: root
+    networks:
+      - nginxphp
+  pma:
+    image: phpmyadmin
+    links:
+      - db
+    restart: always
+    ports:
+      - 8001:80
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      # PMA_ARBITRARY: 1
+    networks:
+      - nginxphp
+networks:
+  nginxphp:
+    driver: bridge
